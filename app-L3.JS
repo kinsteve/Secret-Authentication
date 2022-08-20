@@ -4,9 +4,7 @@ const express=require("express");
 const bodyParser= require("body-parser");
 const ejs=require("ejs");
 const mongoose=require("mongoose");
-const encrypt=require("mongoose-encryption");
-/*This mongoose-encrypt works by encrypting the 
-data on save and decrypt the data when we use find*/
+const md5=require("md5");           //used for hashing
 const app= express();
 
 const secret=process.env.SECRET;
@@ -23,10 +21,7 @@ const userSchema = new mongoose.Schema({     //this is a proper mongoose schema.
     password:{type:String, required:true}
  });
 
-
-userSchema.plugin (encrypt,{secret:secret , encryptedFields:["password"]});  //This is a plugin, it should be placed before defining model
-//we dont want to encrypt our entire model, therefore we added only password in encrypted feilds. 
- const User = new mongoose.model("User",userSchema);
+const User = new mongoose.model("User",userSchema);
 
 app.get("/",(req,res)=>{
     res.render("home");
@@ -43,7 +38,7 @@ app.get("/register",(req,res)=>{
 app.post("/register",(req,res)=>{
     const newUser=new User({
         email:req.body.username,
-        password:req.body.password
+        password:md5(req.body.password)         //hashing the password
     });
     newUser.save((err)=>{
         if(err){
@@ -56,14 +51,14 @@ app.post("/register",(req,res)=>{
 
 app.post("/login", (req,res)=>{
     const username=req.body.username;
-    const password=req.body.password;
+    const password=md5(req.body.password);        //hashing the password typed by user for logging in
 
     User.findOne({email:username},(err,foundUser)=>{
         if(err){
             console.log(err);
         }else{
             if(foundUser){
-                if(foundUser.password===password){
+                if(foundUser.password===password){          //checking if the the hashes match
                     res.render("secrets");
                 }
             }
