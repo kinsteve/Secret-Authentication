@@ -34,7 +34,8 @@ const userSchema = new mongoose.Schema({
   //this is a proper mongoose schema.
   username: String,
   password:String,
-  googleId: String
+  googleId: String,
+  secret:String
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -117,12 +118,47 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/secrets", (req, res) => {
+  // if (req.isAuthenticated()) {      //because we have to see secrets of everybody whether they are logged in or not 
+  //   res.render("secrets");
+  // } else {
+  //   res.redirect("/login");
+  // }
+  User.find({"secret":{$ne:null}},(err,foundUsers)=>{      //this line will look in the collection and find users with secret not equal to null
+       if(err){
+        console.log(err);
+       }else{
+        if(foundUsers){
+            res.render("secrets",{usersWithSecrets:foundUsers});
+        }
+       }
+  })       
+});
+
+app.get("/submit",(req,res)=>{
   if (req.isAuthenticated()) {
-    res.render("secrets");
+    res.render("submit");
   } else {
     res.redirect("/login");
   }
 });
+
+app.post("/submit",(req,res)=>{
+  const submittedSecret=req.body.secret;
+  console.log(req.user.id);
+  User.findById(req.user.id, (err,foundUser)=>{
+    if(err){
+      console.log(err);
+    }else{
+      if(foundUser){
+        foundUser.secret=submittedSecret;
+        foundUser.save(function(){
+          res.redirect("/secrets");
+        });
+      }
+    }
+  })
+})
+
 app.get("/logout", function (req, res) {
   req.logout((err) => {
     if (err) {
